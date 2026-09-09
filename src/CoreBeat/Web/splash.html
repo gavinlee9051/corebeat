@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>芯跳 CoreBeat</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+  <!-- ============ 主界面（M1：静态假数据占位） ============ -->
+  <div class="app" id="app">
+
+    <!-- 自定义标题栏（拖拽区 + 窗口按钮，经原生桥生效） -->
+    <header class="titlebar" id="titlebar">
+      <div class="tb-brand">
+        <svg class="tb-logo" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M3 12.5h3.2l1.6-4 2.6 7.2 2-8.4 1.7 5.2h2.5l1.7-3.6 1.1 3.6H21"
+                fill="none" stroke="currentColor" stroke-width="1.7"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="tb-name">芯跳 <b>CoreBeat</b></span>
+      </div>
+      <div class="tb-tag" id="modeTag" data-nodrag>M1 骨架预览 · 假数据</div>
+      <span class="tb-chip" id="awakeTag" data-nodrag style="display:none"></span>
+      <div class="theme-dots" data-nodrag title="强调色预设">
+        <button class="t-dot t-cyan" data-theme="cyan" title="靛蓝"></button>
+        <button class="t-dot t-blue" data-theme="blue" title="深海蓝"></button>
+        <button class="t-dot t-violet" data-theme="violet" title="心动紫"></button>
+      </div>
+      <div class="tb-actions" data-nodrag>
+        <button class="tb-btn" data-cmd="history" title="近 24h 趋势">
+          <svg viewBox="0 0 12 12"><path d="M1.5 9.2 4.4 6l2 2 3.1-4.4" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="tb-btn" data-cmd="minimize" title="最小化">
+          <svg viewBox="0 0 10 10"><path d="M1 5.6h8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        </button>
+        <button class="tb-btn" data-cmd="maximize" title="最大化 / 还原">
+          <svg viewBox="0 0 10 10"><rect x="1.6" y="1.6" width="6.8" height="6.8" rx="1"
+                fill="none" stroke="currentColor" stroke-width="1.1"/></svg>
+        </button>
+        <button class="tb-btn tb-close" data-cmd="close" title="收起到托盘">
+          <svg viewBox="0 0 10 10"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="stage">
+
+      <!-- 顶部体征栏 -->
+      <section class="vitals" id="vitalsRow">
+        <div class="vtile" id="tileCpu">
+          <div class="vt-label">CPU 总占用</div>
+          <div class="vt-main">
+            <svg class="ring" viewBox="0 0 64 64">
+              <circle class="ring-track" cx="32" cy="32" r="26"/>
+              <circle class="ring-fg" id="cpuRingFg" cx="32" cy="32" r="26"/>
+            </svg>
+            <span class="vt-big" id="cpuPctText">0<em>%</em></span>
+          </div>
+          <div class="vt-sub" id="cpuFreqSub">—</div>
+          <div class="cores" id="cores" title="各物理核心占用"></div>
+          <div class="vt-chip" id="cpuChip">唤醒中…</div>
+        </div>
+
+        <div class="vtile" id="tileMem">
+          <div class="vt-label">内存</div>
+          <div class="vt-big mem" id="memText">0.0<em>GB</em></div>
+          <div class="vt-bar"><i id="memBar" style="width:0%"></i></div>
+          <div class="vt-sub" id="memSub">共 32 GB</div>
+        </div>
+
+        <div class="vtile" id="tileTemp">
+          <button class="tile-speed" id="speedOpen" title="测速" data-nodrag>⚡</button>
+          <div class="vt-label">网速</div>
+          <div class="vt-big mono" id="netVal">↓0.0<em>Mbps</em></div>
+          <div class="vt-big mono net-up" id="netUp">↑0.0<em>Mbps</em></div>
+          <div class="vt-bar"><i id="netBar" style="width:0%"></i></div>
+        </div>
+
+        <div class="vtile" id="tileGpu">
+          <div class="vt-label">GPU 占用</div>
+          <div class="vt-big gpu" id="gpuText">—<em>%</em></div>
+          <div class="vt-bar"><i id="gpuBar" style="width:0%"></i></div>
+          <div class="vt-sub" id="gpuSub">读取中…</div>
+        </div>
+
+        <div class="vtile" id="tileUp">
+          <div class="vt-label">已运行</div>
+          <div class="vt-big mono" id="upText">00:00:00</div>
+          <div class="vt-sub" id="upSub">本会话时长（假数据）</div>
+        </div>
+      </section>
+
+      <!-- 底部瓦片行（整机负载也并入其中，与各卡一起自适应排布） -->
+      <section class="tiles" id="tilesRow">
+        <section class="card ecg-card" id="cardEcg">
+          <div class="card-head">
+            <span class="card-title">
+              <i class="pulse-dot"></i>整机负载 · 心跳波形
+            </span>
+            <span class="card-badge" id="loadBadge">平稳</span>
+          </div>
+          <div class="ecg-wrap"><canvas id="ecg"></canvas></div>
+          <div class="ecg-caption" id="ecgCaption">波形随负载“呼吸”——负载越高，波幅与节奏越急促（当前为演示数据）</div>
+        </section>
+        <!-- 垃圾清理快捷卡 -->
+        <section class="card clean-card" id="cardClean">
+          <div class="card-head">
+            <span class="card-title"><i class="pulse-dot"></i>垃圾清理</span>
+            <button class="clean-deep" id="cleanDeep" data-nodrag>深层清理 ›</button>
+          </div>
+          <div class="clean-body">
+            <div class="clean-left">
+              <div class="clean-total" id="cleanTotal">—</div>
+              <div class="clean-cap">共发现可清理</div>
+            </div>
+            <button class="clean-btn" id="cleanGo" data-nodrag>
+              <span class="clean-ic"></span><span class="clean-tx">一键清理</span>
+            </button>
+          </div>
+          <div class="clean-note" id="cleanNote">清理浏览器缓存与临时文件 · 不动登录态与历史</div>
+        </section>
+
+        <div class="card" id="cardGauge">
+          <div class="card-head"><span class="card-title">温度仪表盘</span></div>
+          <div class="gauge-row">
+            <svg class="gauge" viewBox="0 0 120 72">
+              <path class="gauge-track" d="M14 62 A46 46 0 0 1 106 62"/>
+              <path class="gauge-fg" id="gaugeFg" d="M14 62 A46 46 0 0 1 106 62"/>
+            </svg>
+            <div class="gauge-num" id="gaugeNum">0<em>°</em></div>
+          </div>
+          <div class="mini-rows" id="tempRows"><!-- 温度行：真实传感器驱动 --></div>
+        </div>
+
+        <div class="card" id="cardProcs">
+          <div class="card-head"><span class="card-title">运行进程</span><span class="card-sub" id="procSub">全部软件 · 可滚动 · 每 1s 更新</span></div>
+          <div class="proc-search"><input id="procSearch" type="text" placeholder="搜索软件名称…" spellcheck="false"></div>
+          <ul class="procs" id="procs"><!-- 运行软件（按 exe 归并） --></ul>
+        </div>
+
+        <div class="card" id="cardDisk">
+          <div class="card-head"><span class="card-title">磁盘 / 网络</span></div>
+          <div class="io-block">
+            <div class="io-head"><span>磁盘读写</span><span class="io-val" id="ioDiskVal">读 – · 写 –</span></div>
+            <canvas class="spark" id="sparkDisk"></canvas>
+          </div>
+          <div class="io-block">
+            <div class="io-head"><span>网络</span><span class="io-val" id="ioNetVal">↓ – ↑ –</span></div>
+            <canvas class="spark" id="sparkNet"></canvas>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ============ 「一次心跳」启动动画覆盖层 ============ -->
+    <div class="splash" id="splash" aria-hidden="true">
+      <div class="splash-bg"></div>
+      <div class="pulse-ring r1"></div>
+      <div class="pulse-ring r2"></div>
+      <div class="pulse-ring r3"></div>
+      <div class="splash-inner">
+        <div class="logo-tile">
+          <svg class="logo-ecg" viewBox="0 0 120 48" aria-hidden="true">
+            <path class="le-path" d="M2 26h20l6-12 8 24 7-26 5 14h16l7-9 4 9h26l5-7 4 7h8" fill="none"
+                  stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <i class="logo-glow"></i>
+        </div>
+        <h1 class="splash-title">芯跳 <span>CoreBeat</span></h1>
+        <p class="splash-sub">正在唤醒这颗芯<span class="dots"><i>.</i><i>.</i><i>.</i></span></p>
+      </div>
+    </div>
+  </div>
+
+    <!-- ============ 进程详情浮层（M3） ============ -->
+    <div class="modal" id="procModal" hidden>
+      <div class="modal-card">
+        <div class="modal-head">
+          <span class="modal-title" id="pmName">进程详情</span>
+          <button class="tb-btn" id="pmClose" title="关闭">
+            <svg viewBox="0 0 10 10"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div class="modal-rows" id="pmRows"></div>
+        <div class="modal-actions">
+          <button class="btn" id="pmKill" disabled>结束进程</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 告警气泡容器 -->
+    <div class="toasts" id="toasts"></div>
+
+    <!-- 彩蛋层：跳动爱心（主） -->
+    <div class="love" id="loveOverlay" hidden>
+      <svg class="heart" viewBox="0 0 24 24">
+        <path d="M12 21s-6.7-4.35-9.33-8.11C.9 10.2 1.6 6.6 4.6 5.4 6.9 4.5 9.4 5.3 12 8c2.6-2.7 5.1-3.5 7.4-2.6 3 .6 3.7 4.4 1.9 7.5C18.7 16.6 12 21 12 21z"
+              fill="currentColor" stroke="rgba(255,93,117,.35)" stroke-width=".4"/>
+      </svg>
+      <p class="love-line" id="loveLine"></p>
+    </div>
+
+    <!-- 彩蛋层：温度气泡（副） -->
+    <div class="bubble" id="tempBubble" hidden></div>
+
+    <!-- 24h 历史曲线（回看趋势） -->
+    <div class="modal" id="histModal" hidden>
+      <div class="modal-card hist-card">
+        <div class="modal-head">
+          <span class="modal-title">近 24 小时占用趋势</span>
+          <button class="tb-btn" id="histClose" title="关闭">
+            <svg viewBox="0 0 10 10"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div class="hist-canvas"><canvas id="histCv"></canvas></div>
+        <div class="hist-legend"><span style="color:var(--accent)">━ CPU %</span><span style="color:#ffb454">━ 内存 %</span></div>
+      </div>
+    </div>
+
+    <!-- 网络测速弹层 -->
+    <div class="modal" id="speedModal" hidden>
+      <div class="modal-card speed-card">
+        <div class="speed-top">
+          <span class="speed-title"><i class="pulse-dot"></i>网络测速</span>
+          <button class="tb-btn" id="speedClose" title="关闭"><svg viewBox="0 0 10 10"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+        </div>
+        <div class="speed-sub mono" id="stNode">准备就绪</div>
+        <div class="speed-stage" id="stStage">延迟 → 下行 → 上行</div>
+        <div class="speed-ring" id="stRing">
+          <div class="speed-ring-in">
+            <div class="speed-big mono" id="stBig">0</div>
+            <div class="speed-unit" id="stUnit">Mbps</div>
+          </div>
+        </div>
+        <div class="speed-capTxt" id="stCap">点击「开始测速」</div>
+        <div class="speed-grid">
+          <div class="stile"><span>下行</span><b id="stDown">—</b></div>
+          <div class="stile"><span>上行</span><b id="stUp">—</b></div>
+          <div class="stile"><span>延迟</span><b id="stLat">—</b></div>
+          <div class="stile"><span>抖动</span><b id="stJit">—</b></div>
+          <div class="stile stile-lg"><span>丢包</span><b id="stLoss">—</b></div>
+        </div>
+        <button class="clean-btn speed-go" id="speedGo"><span class="clean-ic"></span><span class="clean-tx">开始测速</span></button>
+      </div>
+    </div>
+
+    <!-- 首启引导 -->
+    <div class="onb" id="onb" hidden>
+      <div class="onb-card">
+        <button class="onb-skip" id="onbSkip">跳过 ›</button>
+        <div class="onb-stage" id="onbStage"></div>
+        <div class="onb-foot">
+          <div class="onb-dots" id="onbDots"></div>
+          <div class="onb-nav">
+            <button class="gbtn" id="onbPrev" hidden>上一步</button>
+            <button class="abtn" id="onbNext">下一步</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

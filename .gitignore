@@ -1,0 +1,27 @@
+# 芯跳 CoreBeat —— .NET / WPF / WebView2
+
+## dotnet build outputs
+bin/
+obj/
+dist/
+*.user
+
+## Visual Studio
+.vs/
+.vscode/
+*.suo
+*.userosscache
+
+## 本地 NuGet / dotnet 沙箱缓存（位于工作区，不纳入版本库）
+.cb-nuget/
+.cb-dotnet/
+.cb-tmp/
+
+## 本地日志与 WebView2 用户数据
+logs/
+*.log
+
+## 系统杂项
+Thumbs.db
+Desktop.ini
+.DS_Store

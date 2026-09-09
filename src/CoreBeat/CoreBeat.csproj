@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <RootNamespace>CoreBeat</RootNamespace>
+    <AssemblyName>CoreBeat</AssemblyName>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+
+    <!-- 应用身份：中文名「芯跳 CoreBeat」 -->
+    <AssemblyTitle>芯跳 CoreBeat</AssemblyTitle>
+    <Product>芯跳 CoreBeat</Product>
+    <Company>CoreBeat Project</Company>
+    <Description>芯跳 CoreBeat —— “会呼吸”的系统资源健康小工具（M1 骨架预览）</Description>
+    <Version>0.5.0</Version>
+    <FileVersion>0.5.0.0</FileVersion>
+
+    <ApplicationIcon>Assets\CoreBeat.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- WebView2 渲染引擎（SDK 1.0.4191.47 对应已安装运行时 152.0.4191.x） -->
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4191.47" />
+    <!-- 传感器读取：CPU/GPU/NVMe 温度与负载。改用 nightly(0.9.7-pre733) 以尝试可加载的新驱动（CPU 温度） -->
+    <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.7-pre733" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 图标：WPF Resource 供托盘/窗口使用（ApplicationIcon 另作 win32 exe 图标） -->
+    <Resource Include="Assets\CoreBeat.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 前端渲染资源：WebView2 加载 splash.html，随输出目录复制 -->
+    <Content Include="Web\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>
