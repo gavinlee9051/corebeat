@@ -55,37 +55,83 @@ src\CoreBeat\bin\Debug\net8.0-windows\CoreBeat.exe
 ## 📦 新版发布操作手册（维护者）
 
 > 一句话：**改版本号 → 提交推送 → 打 tag 推送**，剩下 GitHub Actions 自动完成。全程约 2 分钟。
+> 最省事的方式是**用一键脚本**（见下），一条命令搞定。
 
-### ⭐ 方式一：一键发布脚本（最省事，推荐）
-`tools\publish-release.ps1` 一条命令完成「改版本号 → 提交推送 main → 打 tag 推送 → 触发 CI 自动发布」：
+### ⭐ 方式一：一键发布脚本（最推荐，日常用这个）
+`tools\publish-release.ps1` 一条命令自动完成「改版本号 → 本地编译校验 → 提交推送 main → 打 v\* tag 推送 → 触发 GitHub Actions 出包建 Release」。
+
 ```powershell
-# 自动递增补丁号（0.6.1 -> 0.6.2）并发布
+# ① 自动递增补丁号（0.6.1 -> 0.6.2）并发布
 powershell -ExecutionPolicy Bypass -File tools\publish-release.ps1
 
-# 指定目标版本
+# ② 指定目标版本
 powershell -ExecutionPolicy Bypass -File tools\publish-release.ps1 -Version 0.7.0
 
-# 先预览要做什么（不真正改文件/不推送），推荐第一次先跑这个
+# ③ 只预览要做什么（不真正改文件/不推送），第一次建议先跑这个
 powershell -ExecutionPolicy Bypass -File tools\publish-release.ps1 -DryRun
 ```
-脚本会：更新 `App.xaml.cs` 版本号 → 本地 `dotnet build -c Release` 校验 → 提交并推送 `main` → 打 `v<版本>` tag 并推送 → 触发 GitHub Actions 自动出包建 Release。发布成功后到仓库 **Actions** 页看进度（约 3~5 分钟）。
+
+**脚本实际执行的动作（实测输出）：**
+```
+当前版本: 0.6.1
+目标版本: 0.6.2   tag: v0.6.2
+Bumped version: App.xaml.cs -> 0.6.2
+本地编译校验: dotnet build -c Release   → 成功（0 错误）
+commit: release: v0.6.2  →  push origin main ✓
+tag: v0.6.2            →  push origin v0.6.2 ✓（触发 CI 自动发布）
+```
+
+**脚本参数：**
+| 参数 | 作用 | 示例 |
+|---|---|---|
+| `-Version x.y.z` | 指定目标版本号；留空则自动把当前补丁号 +1 | `-Version 0.7.0` |
+| `-CommitMessage` | 自定义提交信息；留空自动生成 `release: v<版本>` | `-CommitMessage "feat: xxx"` |
+| `-SkipBuild` | 跳过本地编译校验（不推荐，少了安全网） | `-SkipBuild` |
+| `-DryRun` | 只预览，不修改文件、不推送、不发布 | `-DryRun` |
+
+**脚本执行的完整流水线：**
+1. 读 `src/CoreBeat/App.xaml.cs` 的 `Version`，确定/递增目标版本。
+2. 改写版本号（UTF-8 无 BOM，保留中文注释；只替换数字，`Version =` 前缀和引号不动）。
+3. `dotnet build -c Release` 本地校验，编译失败会中止发布。
+4. `git add -A && git commit && git push origin main`。
+5. `git tag v<版本> && git push origin v<版本>` —— 这一步触发 GitHub Actions。
+
+**运行后：** 到仓库 **Actions** 页看进度（约 3~5 分钟变绿即完成）。Release 自动带 `CoreBeat-Setup-x64.exe`（安装版）+ `CoreBeat-<版本>.zip`（绿色版），用户端「检查更新…」即可收到。
 
 ### 方式二：手动两步（想自己掌控细节时）
+不运行脚本，自己分两步做。适合想自定义提交信息或先本地验证的场景。
 
+**第 1 步：改版本号并推送**
+1. 打开 `src/CoreBeat/App.xaml.cs`，把版本号改掉（如 `0.6.2` → `0.6.3`）。
+2. 提交并推送：
+```bash
+git add -A
+git commit -m "feat: 0.6.3 更新说明"
+git push origin main
+```
+> 关键：代码里版本号已改、且已推到远端。
 
----
+**第 2 步：打 tag 触发自动发布**
+```bash
+git tag v0.6.3
+git push origin v0.6.3
+```
+> tag 必须带 `v` 前缀、数字与 `App.xaml.cs` 的 `Version` 完全一致。推到 tag 即触发 CI 自动出包建 Release。
 
-### 本地一键发布（备用，本机需装 Inno Setup 6 与 gh）
+### 方式三：本地一键发布（备用，本机需装 Inno Setup 6 与 gh）
 ```powershell
 powershell -File tools\release.ps1 -Version 0.6.2 -Notes "本次更新说明…"
 ```
-`tools\release.ps1` 会：编译 Inno 安装包 → 打绿色 zip → `gh release create v<版本>` 上传并同步 About。**与 CI 二选一即可，不要两者都跑同一版本号**（会重复建 Release）。
+`tools\release.ps1` 会：编译 Inno 安装包 → 打绿色 zip → `gh release create v<版本>` 上传并同步 About。
+> ⚠️ **与 CI（方式一/二）二选一即可**，不要对同一版本号两边都跑，会重复建 Release。
 
 ### 常见问题（FAQ）
 - **tag 打错了 / 版本号改了但上次 tag 已发布** → 用新版本号（如 `v0.6.3`），**不要**删旧 tag 重推。
-- **Release 中文显示 `??`** → 是控制台编码问题：`chcp 65001` 后再跑，或用 GitHub 网页编辑。CI 自动发布不受影响。
+- **Release 中文显示 `??`** → 控制台编码问题：`chcp 65001` 后再跑，或用 GitHub 网页编辑。CI 自动发布不受影响。
 - **改了版本号没打 tag** → 不会发布；用户端看到的仍是旧版本。
-- **想手动更新 About 描述** → 在仓库 Settings → 描述里直接改，或网页 Release 编辑页。
+- **想手动更新 About 描述** → 仓库 Settings → 描述里直接改，或网页 Release 编辑页。
+- **脚本报「版本号与当前相同」** → 目标版本不能等于当前版本；用 `-Version` 指定一个更大的新号。
+- **本地编译失败被中止** → 先修好代码再跑；`-SkipBuild` 可跳过校验（但不推荐）。
 
 > ℹ️ 重复推送同一个 `v*` 标签不会重建 Release（tag 已存在即跳过）。发布新版务必递增 tag 而非复用。
 
