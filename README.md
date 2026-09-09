@@ -61,6 +61,7 @@ powershell -File tools\publish.ps1
 powershell -File tools\release.ps1 -Version 0.6.1 -Notes "本次更新说明…"
 ```
 `tools\release.ps1` 会：编译 Inno 安装包 → 打绿色 zip → `gh release create v<版本>` 上传并同步仓库 About 描述。
+> ⚠️ 若发布后 Release 标题/正文里的中文变成 `??`，是控制台编码问题：把终端切换为 UTF-8（`chcp 65001`）后再跑脚本，或直接用 GitHub 网页 Release 编辑页手动修正。
 
 ## 🧹 其它
 - 单实例由托盘驻留；关闭主窗口 = 收起到托盘。
