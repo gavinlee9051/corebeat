@@ -37,8 +37,10 @@ PrivilegesRequiredOverridesAllowed=dialog
 SetupIconFile=..\src\CoreBeat\Assets\CoreBeat.ico
 UninstallDisplayName={#MyAppName}
 
+; 语言文件随仓库提供，避免 CI 镜像缺编译器自带简体中文包。
+; 若改用仓库内文件（推荐，CI 稳定），用下面的路径；否则回退到 compiler:Languages。
 [Languages]
-Name: "chinesesimp"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+Name: "chinesesimp"; MessagesFile: "languages\ChineseSimplified.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "创建桌面快捷方式"; GroupDescription: "附加任务："; Flags: unchecked
