@@ -52,23 +52,56 @@ src\CoreBeat\bin\Debug\net8.0-windows\CoreBeat.exe
 - 首次运行会提示是否提权（自绘弹窗）；可在「设置 → 通用 → 开机以管理员身份运行」一键配置。
 - 日志：`%LOCALAPPDATA%\CoreBeat\corebeat.log`。
 
-## 📦 发布新版（维护者）
-### 方式一：GitHub Actions 自动发布（推荐）
-推送形如 `v0.6.1` 的标签即可，云端自动完成「编译绿色版 → 编译 Inno 安装包 → 打 zip → 建 Release 并上传全部资产 → 更新 About」：
+## 📦 新版发布操作手册（维护者）
+
+> 一句话：**改版本号 → 提交推送 → 打 tag 推送**，剩下 GitHub Actions 自动完成。全程约 2 分钟。
+
+### 第 0 步：改版本号
+把 `src/CoreBeat/App.xaml.cs` 里的版本号改成目标版本，例如从 `0.6.1` 改成 `0.6.2`：
+```csharp
+public const string Version = "0.6.2";   // 只改这一行，需与 tag 一致
+```
+> 版本号一旦发布就不要再改；下一版用 `0.6.3`、`0.7.0` 等递增。改版本、但不打 tag，不会触发发布。
+
+### 第 1 步：提交并推送代码
 ```bash
-git tag v0.6.1 && git push origin v0.6.1
+git add -A
+git commit -m "feat: 0.6.2 更新说明"
+git push origin main
 ```
-工作流在 `.github/workflows/release.yml`，需仓库已配置 GitHub Actions（私有仓库默认启用，无额外费用）。
+> 提交信息可随意，只是记录。关键是**代码里版本号已改**、且**已推送到远端**。
 
-### 方式二：本地一键发布
+### 第 2 步：打法版本号 tag → 触发自动发布（推荐）
+```bash
+git tag v0.6.2
+git push origin v0.6.2
+```
+> - tag **必须带 `v` 前缀**（`v0.6.2`），且数字与第 0 步的 `Version` 完全一致。
+> - 推到 tag 即触发 `.github/workflows/release.yml`：云端自动 **编译绿色版 → 编译 Inno 安装包 → 打 zip → 建 Release 并上传 → 更新 About**。
+> - 在仓库 **Actions** 页能看到进度（约 3~5 分钟）；绿色即完成。
+
+### 第 3 步：发布完成（无需人工上传）
+Release 会自动带上两个资产：
+- `CoreBeat-Setup-x64.exe`（安装版，可自定义目录）
+- `CoreBeat-<版本>.zip`（绿色版）
+
+用户端托盘「检查更新…」或启动静默检查（约 8s）即可发现新版本并提示下载覆盖安装。
+
+---
+
+### 本地一键发布（备用，本机需装 Inno Setup 6 与 gh）
 ```powershell
-# 需本机已装 Inno Setup 6 与 gh（gh auth login）
-powershell -File tools\release.ps1 -Version 0.6.1 -Notes "本次更新说明…"
+powershell -File tools\release.ps1 -Version 0.6.2 -Notes "本次更新说明…"
 ```
-`tools\release.ps1` 会：编译 Inno 安装包 → 打绿色 zip → `gh release create v<版本>` 上传并同步仓库 About 描述。
-> ⚠️ 若发布后 Release 标题/正文里的中文变成 `??`，是控制台编码问题：把终端切换为 UTF-8（`chcp 65001`）后再跑脚本，或直接用 GitHub 网页 Release 编辑页手动修正。
+`tools\release.ps1` 会：编译 Inno 安装包 → 打绿色 zip → `gh release create v<版本>` 上传并同步 About。**与 CI 二选一即可，不要两者都跑同一版本号**（会重复建 Release）。
 
-> ℹ️ 两种方式都只在**没有对应 tag** 时需要；重复推送同一个 `v*` 标签不会重建。发布新版请先改 `src/CoreBeat/App.xaml.cs` 的 `Version`，确保与 tag 一致。
+### 常见问题（FAQ）
+- **tag 打错了 / 版本号改了但上次 tag 已发布** → 用新版本号（如 `v0.6.3`），**不要**删旧 tag 重推。
+- **Release 中文显示 `??`** → 是控制台编码问题：`chcp 65001` 后再跑，或用 GitHub 网页编辑。CI 自动发布不受影响。
+- **改了版本号没打 tag** → 不会发布；用户端看到的仍是旧版本。
+- **想手动更新 About 描述** → 在仓库 Settings → 描述里直接改，或网页 Release 编辑页。
+
+> ℹ️ 重复推送同一个 `v*` 标签不会重建 Release（tag 已存在即跳过）。发布新版务必递增 tag 而非复用。
 
 ## 🧹 其它
 - 单实例由托盘驻留；关闭主窗口 = 收起到托盘。
