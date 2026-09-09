@@ -56,36 +56,22 @@ src\CoreBeat\bin\Debug\net8.0-windows\CoreBeat.exe
 
 > 一句话：**改版本号 → 提交推送 → 打 tag 推送**，剩下 GitHub Actions 自动完成。全程约 2 分钟。
 
-### 第 0 步：改版本号
-把 `src/CoreBeat/App.xaml.cs` 里的版本号改成目标版本，例如从 `0.6.1` 改成 `0.6.2`：
-```csharp
-public const string Version = "0.6.2";   // 只改这一行，需与 tag 一致
+### ⭐ 方式一：一键发布脚本（最省事，推荐）
+`tools\publish-release.ps1` 一条命令完成「改版本号 → 提交推送 main → 打 tag 推送 → 触发 CI 自动发布」：
+```powershell
+# 自动递增补丁号（0.6.1 -> 0.6.2）并发布
+powershell -ExecutionPolicy Bypass -File tools\publish-release.ps1
+
+# 指定目标版本
+powershell -ExecutionPolicy Bypass -File tools\publish-release.ps1 -Version 0.7.0
+
+# 先预览要做什么（不真正改文件/不推送），推荐第一次先跑这个
+powershell -ExecutionPolicy Bypass -File tools\publish-release.ps1 -DryRun
 ```
-> 版本号一旦发布就不要再改；下一版用 `0.6.3`、`0.7.0` 等递增。改版本、但不打 tag，不会触发发布。
+脚本会：更新 `App.xaml.cs` 版本号 → 本地 `dotnet build -c Release` 校验 → 提交并推送 `main` → 打 `v<版本>` tag 并推送 → 触发 GitHub Actions 自动出包建 Release。发布成功后到仓库 **Actions** 页看进度（约 3~5 分钟）。
 
-### 第 1 步：提交并推送代码
-```bash
-git add -A
-git commit -m "feat: 0.6.2 更新说明"
-git push origin main
-```
-> 提交信息可随意，只是记录。关键是**代码里版本号已改**、且**已推送到远端**。
+### 方式二：手动两步（想自己掌控细节时）
 
-### 第 2 步：打法版本号 tag → 触发自动发布（推荐）
-```bash
-git tag v0.6.2
-git push origin v0.6.2
-```
-> - tag **必须带 `v` 前缀**（`v0.6.2`），且数字与第 0 步的 `Version` 完全一致。
-> - 推到 tag 即触发 `.github/workflows/release.yml`：云端自动 **编译绿色版 → 编译 Inno 安装包 → 打 zip → 建 Release 并上传 → 更新 About**。
-> - 在仓库 **Actions** 页能看到进度（约 3~5 分钟）；绿色即完成。
-
-### 第 3 步：发布完成（无需人工上传）
-Release 会自动带上两个资产：
-- `CoreBeat-Setup-x64.exe`（安装版，可自定义目录）
-- `CoreBeat-<版本>.zip`（绿色版）
-
-用户端托盘「检查更新…」或启动静默检查（约 8s）即可发现新版本并提示下载覆盖安装。
 
 ---
 
