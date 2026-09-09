@@ -82,6 +82,8 @@ jobs:
             --notes $notes
 
       - name: 更新仓库 About 描述
+        # GITHUB_TOKEN 对私有仓库更新描述为 403，此处允许失败；描述可在网页或发布后用 API 维护
+        continue-on-error: true
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
