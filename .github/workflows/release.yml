@@ -1,0 +1,81 @@
+name: 发布 Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 设置 .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: 读取版本号
+        shell: pwsh
+        run: |
+          $v = $env:GITHUB_REF_NAME -replace '^v', ''
+          "VERSION=$v" >> $env:GITHUB_ENV
+          Write-Host "解析到版本: $v"
+
+      - name: 安装 Inno Setup 6
+        shell: pwsh
+        run: |
+          choco install innosetup --yes --no-progress
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { throw "ISCC 未找到: $iscc" }
+          Write-Host "Inno Setup 就绪"
+
+      - name: 生成绿色版
+        shell: pwsh
+        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\publish.ps1
+
+      - name: 编译安装包
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          & $iscc "/DMyAppVer=$env:VERSION" tools\installer.iss
+          if (-not (Test-Path dist\CoreBeat-Setup-x64.exe)) { throw "安装包生成失败" }
+
+      - name: 打绿色 zip
+        shell: pwsh
+        run: |
+          $zip = "dist\CoreBeat-$env:VERSION.zip"
+          if (Test-Path $zip) { Remove-Item $zip -Force }
+          Compress-Archive -Path "dist\CoreBeat\*" -DestinationPath $zip -CompressionLevel Optimal
+          Write-Host "zip: $zip"
+
+      - name: 创建 Release 并上传资产
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $notes = @"
+          ## 芯跳 CoreBeat v$env:VERSION
+          - 自动发布的安装版 + 绿色版
+          - 由 GitHub Actions 在打 `$`v* 标签时自动生成
+          "@
+          gh release create "v$env:VERSION" `
+            "dist\CoreBeat-Setup-x64.exe" `
+            "dist\CoreBeat-$env:VERSION.zip" `
+            --repo $env:GITHUB_REPOSITORY `
+            --title "芯跳 CoreBeat v$env:VERSION" `
+            --notes $notes
+
+      - name: 更新仓库 About 描述
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh repo edit $env:GITHUB_REPOSITORY --description "芯跳 CoreBeat：会呼吸的 Windows 系统健康小工具 —— 实时 CPU/GPU/温度/内存/网速 · 防睡眠防锁 · 桌面宠物 · 垃圾清理 · 真实网络测速"

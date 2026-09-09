@@ -53,15 +53,22 @@ src\CoreBeat\bin\Debug\net8.0-windows\CoreBeat.exe
 - 日志：`%LOCALAPPDATA%\CoreBeat\corebeat.log`。
 
 ## 📦 发布新版（维护者）
-```powershell
-# 1) 绿色版重发布
-powershell -File tools\publish.ps1
+### 方式一：GitHub Actions 自动发布（推荐）
+推送形如 `v0.6.1` 的标签即可，云端自动完成「编译绿色版 → 编译 Inno 安装包 → 打 zip → 建 Release 并上传全部资产 → 更新 About」：
+```bash
+git tag v0.6.1 && git push origin v0.6.1
+```
+工作流在 `.github/workflows/release.yml`，需仓库已配置 GitHub Actions（私有仓库默认启用，无额外费用）。
 
-# 2) 一键出安装包 + zip + GitHub Release（需已装 Inno Setup 6 与 gh）
+### 方式二：本地一键发布
+```powershell
+# 需本机已装 Inno Setup 6 与 gh（gh auth login）
 powershell -File tools\release.ps1 -Version 0.6.1 -Notes "本次更新说明…"
 ```
 `tools\release.ps1` 会：编译 Inno 安装包 → 打绿色 zip → `gh release create v<版本>` 上传并同步仓库 About 描述。
 > ⚠️ 若发布后 Release 标题/正文里的中文变成 `??`，是控制台编码问题：把终端切换为 UTF-8（`chcp 65001`）后再跑脚本，或直接用 GitHub 网页 Release 编辑页手动修正。
+
+> ℹ️ 两种方式都只在**没有对应 tag** 时需要；重复推送同一个 `v*` 标签不会重建。发布新版请先改 `src/CoreBeat/App.xaml.cs` 的 `Version`，确保与 tag 一致。
 
 ## 🧹 其它
 - 单实例由托盘驻留；关闭主窗口 = 收起到托盘。

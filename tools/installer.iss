@@ -7,7 +7,10 @@
 ; ============================================================================
 
 #define MyAppName "芯跳 CoreBeat"
-#define MyAppVer "0.6.0"
+; 版本号可由 CI 通过 /DMyAppVer=0.6.1 覆盖；本地缺省用 0.6.1
+#ifndef MyAppVer
+  #define MyAppVer "0.6.1"
+#endif
 #define MyAppPublisher "CoreBeat"
 #define MyAppExe "CoreBeat.exe"
 
