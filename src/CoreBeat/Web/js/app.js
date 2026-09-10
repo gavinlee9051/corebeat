@@ -930,6 +930,7 @@ function setCleanInfo(msg) {
 function onCleanDone(msg) {
   const card = $("cardClean");
   if (card) card.classList.remove("working");
+  clearTimeout(cleanWatchdog); cleanWatchdog = null;
   const note = $("cleanNote");
   if (note && msg) {
     note.textContent = msg.freed > 0
@@ -939,11 +940,23 @@ function onCleanDone(msg) {
   setCleanInfo(msg); // 更新剩余可清理量
   if (msg && msg.freed > 0) showToast("垃圾清理", `已释放 ${fmtCleanSize(msg.freed)}`);
 }
+let cleanWatchdog = null;
+function cleanStartUI() {
+  const card = $("cardClean");
+  if (card) card.classList.add("working");
+  const note = $("cleanNote");
+  if (note) note.textContent = "正在清理…请稍候";
+  // 兜底：清理耗时过长时给出提示，避免卡片看起来永久卡死
+  clearTimeout(cleanWatchdog);
+  cleanWatchdog = setTimeout(() => {
+    const c = $("cardClean"), n = $("cleanNote");
+    if (c && c.classList.contains("working") && n) n.textContent = "清理耗时较长，仍在后台进行…（大缓存首次清理会久一些）";
+  }, 60000);
+}
 $("cleanGo") && $("cleanGo").addEventListener("click", () => {
   const card = $("cardClean");
   if (card && card.classList.contains("working")) return;
-  if (card) card.classList.add("working");
-  const note = $("cleanNote"); if (note) note.textContent = "正在清理…请稍候";
+  cleanStartUI();
   send("cleanQuick");
 });
 $("cleanDeep") && $("cleanDeep").addEventListener("click", () => send("openCleanSettings"));
