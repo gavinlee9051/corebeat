@@ -148,7 +148,7 @@ public partial class App : System.Windows.Application
     }
 
     /* ---- 版本与更新源（发布方替换 UpdateManifestUrl 为实际地址） ---- */
-    public const string Version = "0.6.2";
+    public const string Version = "0.6.3";
     public const string UpdateManifestUrl = "";  // 路线B（自托管 update.json）：https://example.com/corebeat/update.json ；留空则走 UpdateRepo
     public const string UpdateRepo = "gavinlee9051/corebeat"; // 路线A：GitHub Releases，发布 Release 即触发更新
 
