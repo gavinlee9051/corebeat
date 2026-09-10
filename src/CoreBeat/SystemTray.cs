@@ -293,6 +293,20 @@ public sealed class SystemTray : IDisposable
                 WF.MessageBox.Show($"已是最新版本 v{App.Version}。", "芯跳 CoreBeat 更新", WF.MessageBoxButtons.OK, WF.MessageBoxIcon.Information);
             }
         }
+        catch (System.Net.Http.HttpRequestException hex) when (hex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            // 404 的常见原因：仓库不存在，或仓库为私有（GitHub 对私有仓库的匿名请求一律返回 404）
+            string tip = string.IsNullOrWhiteSpace(App.UpdateManifestUrl)
+                ? "检查更新失败：更新源返回 404（未找到）。\n\n"
+                  + "常见原因：仓库名有误，或仓库是「私有」——GitHub 对私有仓库的匿名请求一律返回 404，"
+                  + "用户端既查不到更新、也下载不了安装包。\n\n"
+                  + "解决办法（任选其一）：\n"
+                  + "① 把 GitHub 仓库设为 Public（推荐，零服务器，路线 A 立即生效）；\n"
+                  + "② 改用自托管 update.json：把 App.UpdateManifestUrl 填为可公开访问的清单地址（路线 B，见 README）。"
+                : "检查更新失败：update.json 地址返回 404。\n\n请确认 App.UpdateManifestUrl 地址正确、文件已上传且可公开访问。";
+            if (!silent) WF.MessageBox.Show(tip, "芯跳 CoreBeat 更新", WF.MessageBoxButtons.OK, WF.MessageBoxIcon.Warning);
+            else App.Log($"静默检查更新 404：repo={App.UpdateRepo} manifest={App.UpdateManifestUrl}");
+        }
         catch (Exception ex)
         {
             if (!silent) WF.MessageBox.Show("检查更新失败：" + ex.Message, "芯跳 CoreBeat 更新", WF.MessageBoxButtons.OK, WF.MessageBoxIcon.Warning);
