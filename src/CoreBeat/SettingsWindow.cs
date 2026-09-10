@@ -507,7 +507,7 @@ public sealed class SettingsWindow
         _cleanStatusTxt.Text = "正在扫描可清理项…";
         try
         {
-            var list = await System.Threading.Tasks.Task.Run(JunkCleaner.Scan);
+            var list = await System.Threading.Tasks.Task.Run(() => JunkCleaner.Scan());
             _cleanItems.Clear();
             _cleanItems.AddRange(list);
             if (_cleanSel.Count == 0)
@@ -552,7 +552,7 @@ public sealed class SettingsWindow
             string hint = ok == 0 ? "；文件可能正被程序占用或需管理员，未释放" : "";
             _cleanStatusTxt.Text = $"清理完成：释放 {size} · 成功 {ok} · 跳过 {fail}{hint} · 累计已释放 {Fmt(App.CleanTotal)}";
             Toast($"清理完成 · 释放 {size}（成功 {ok} / 跳过 {fail}{hint}）");
-            var list = await System.Threading.Tasks.Task.Run(JunkCleaner.Scan);
+            var list = await System.Threading.Tasks.Task.Run(() => JunkCleaner.Scan());
             _cleanItems.Clear();
             _cleanItems.AddRange(list);
             RenderCleanRows();
@@ -666,7 +666,8 @@ public sealed class SettingsWindow
             foreach (var k in kids)
             {
                 var nameTb = new TextBlock { Text = k.Name, Foreground = new SolidColorBrush(TextMain), FontSize = 12.5, VerticalAlignment = VerticalAlignment.Center };
-                var szTb = new TextBlock { Text = Fmt(k.Size), Foreground = new SolidColorBrush(TextDim), FontSize = 11.5, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0) };
+                if (!string.IsNullOrEmpty(k.Note)) nameTb.ToolTip = k.Note;
+                var szTb = new TextBlock { Text = (k.Partial ? "≥ " : "") + Fmt(k.Size), Foreground = new SolidColorBrush(TextDim), FontSize = 11.5, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0) };
                 var g = new Grid();
                 g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
